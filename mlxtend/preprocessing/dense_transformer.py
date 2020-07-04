@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A class for transforming sparse numpy arrays into dense arrays.
@@ -12,7 +12,13 @@ from scipy.sparse import issparse
 
 
 class DenseTransformer(BaseEstimator):
-    """Convert a sparse array into a dense array."""
+    """
+    Convert a sparse array into a dense array.
+
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/preprocessing/DenseTransformer/
+
+    """
 
     def __init__(self, return_copy=True):
         self.return_copy = return_copy

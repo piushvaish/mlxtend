@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A counter class for printing the progress of an iterator.
@@ -51,6 +51,9 @@ class Counter(object):
     >>> print('The counter was last updated'
               ' %d seconds ago.' % (time.time() - cnt.end_time))
     The counter was last updated 0 seconds ago.
+
+    For more usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/utils/Counter/
 
     """
     def __init__(self, stderr=False, start_newline=True, precision=0,

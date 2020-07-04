@@ -3,7 +3,7 @@
 # For explanation of approach, see:
 # dnc1994.com/2016/05/rank-10-percent-in-first-kaggle-competition-en/#Stacking
 #
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # An ensemble-learning meta-regressor for out-of-fold stacking regression
@@ -13,30 +13,24 @@
 #
 # License: BSD 3 clause
 
-from sklearn.base import BaseEstimator
+from ..externals.estimator_checks import check_is_fitted
+from ..externals.name_estimators import _name_estimators
+from ..utils.base_compostion import _BaseXComposition
+from scipy import sparse
 from sklearn.base import RegressorMixin
 from sklearn.base import TransformerMixin
 from sklearn.base import clone
-from sklearn.exceptions import NotFittedError
+from sklearn.model_selection import cross_val_predict
 from sklearn.model_selection._split import check_cv
-from ..externals import six
-from ..externals.name_estimators import _name_estimators
+from sklearn.utils import check_X_y
+
 import numpy as np
 
 
-class StackingCVRegressor(BaseEstimator, RegressorMixin, TransformerMixin):
+class StackingCVRegressor(_BaseXComposition, RegressorMixin, TransformerMixin):
     """A 'Stacking Cross-Validation' regressor for scikit-learn estimators.
 
     New in mlxtend v0.7.0
-
-    Notes
-    -------
-    The StackingCVRegressor uses scikit-learn's check_cv
-    internally, which doesn't support a random seed. Thus
-    NumPy's random seed need to be specified explicitely for
-    deterministic behavior, for instance, by setting
-    np.random.seed(RANDOM_SEED)
-    prior to fitting the StackingCVRegressor
 
     Parameters
     ----------
@@ -56,23 +50,54 @@ class StackingCVRegressor(BaseEstimator, RegressorMixin, TransformerMixin):
         - An object to be used as a cross-validation generator.
         - An iterable yielding train, test splits.
         For integer/None inputs, it will use `KFold` cross-validation
+    shuffle : bool (default: True)
+        If True,  and the `cv` argument is integer, the training data will
+        be shuffled at fitting stage prior to cross-validation. If the `cv`
+        argument is a specific cross validation technique, this argument is
+        omitted.
+    random_state : int, RandomState instance or None, optional (default: None)
+        Constrols the randomness of the cv splitter. Used when `cv` is
+        integer and `shuffle=True`. New in v0.16.0.
+    verbose : int, optional (default=0)
+        Controls the verbosity of the building process. New in v0.16.0
+    refit : bool (default: True)
+        Clones the regressors for stacking regression if True (default)
+        or else uses the original ones, which will be refitted on the dataset
+        upon calling the `fit` method. Setting refit=False is
+        recommended if you are working with estimators that are supporting
+        the scikit-learn fit/predict API interface but are not compatible
+        to scikit-learn's `clone` function.
     use_features_in_secondary : bool (default: False)
         If True, the meta-regressor will be trained both on
         the predictions of the original regressors and the
         original dataset.
         If False, the meta-regressor will be trained only on
         the predictions of the original regressors.
-    shuffle : bool (default: True)
-        If True,  and the `cv` argument is integer, the training data will
-        be shuffled at fitting stage prior to cross-validation. If the `cv`
-        argument is a specific cross validation technique, this argument is
-        omitted.
     store_train_meta_features : bool (default: False)
         If True, the meta-features computed from the training data
         used for fitting the
         meta-regressor stored in the `self.train_meta_features_` array,
         which can be
         accessed after calling `fit`.
+    n_jobs : int or None, optional (default=None)
+        The number of CPUs to use to do the computation.
+        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
+        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
+        for more details. New in v0.16.0.
+    pre_dispatch : int, or string, optional
+        Controls the number of jobs that get dispatched during parallel
+        execution. Reducing this number can be useful to avoid an
+        explosion of memory consumption when more jobs get dispatched
+        than CPUs can process. This parameter can be:
+            - None, in which case all the jobs are immediately
+              created and spawned. Use this for lightweight and
+              fast-running jobs, to avoid delays due to on-demand
+              spawning of the jobs
+            - An int, giving the exact number of total jobs that are
+              spawned
+            - A string, giving an expression as a function of n_jobs,
+              as in '2*n_jobs'
+        New in v0.16.0.
 
     Attributes
     ----------
@@ -81,26 +106,31 @@ class StackingCVRegressor(BaseEstimator, RegressorMixin, TransformerMixin):
         number of samples
         in training data and len(self.regressors) is the number of regressors.
 
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/regressor/StackingCVRegressor/
+
     """
     def __init__(self, regressors, meta_regressor, cv=5,
-                 shuffle=True,
-                 use_features_in_secondary=False,
-                 store_train_meta_features=False):
+                 shuffle=True, random_state=None, verbose=0,
+                 refit=True, use_features_in_secondary=False,
+                 store_train_meta_features=False, n_jobs=None,
+                 pre_dispatch='2*n_jobs'):
 
         self.regressors = regressors
         self.meta_regressor = meta_regressor
-        self.named_regressors = {key: value for
-                                 key, value in
-                                 _name_estimators(regressors)}
-        self.named_meta_regressor = {'meta-%s' % key: value for
-                                     key, value in
-                                     _name_estimators([meta_regressor])}
         self.cv = cv
         self.shuffle = shuffle
+        self.random_state = random_state
+        self.verbose = verbose
+        self.refit = refit
         self.use_features_in_secondary = use_features_in_secondary
         self.store_train_meta_features = store_train_meta_features
+        self.n_jobs = n_jobs
+        self.pre_dispatch = pre_dispatch
 
-    def fit(self, X, y, groups=None):
+    def fit(self, X, y, groups=None, sample_weight=None):
         """ Fit ensemble regressors and the meta-regressor.
 
         Parameters
@@ -116,57 +146,73 @@ class StackingCVRegressor(BaseEstimator, RegressorMixin, TransformerMixin):
             The group that each sample belongs to. This is used by specific
             folding strategies such as GroupKFold()
 
+        sample_weight : array-like, shape = [n_samples], optional
+            Sample weights passed as sample_weights to each regressor
+            in the regressors list as well as the meta_regressor.
+            Raises error if some regressor does not support
+            sample_weight in the fit() method.
+
         Returns
         -------
         self : object
 
         """
-        self.regr_ = [clone(x) for x in self.regressors]
-        self.meta_regr_ = clone(self.meta_regressor)
+        if self.refit:
+            self.regr_ = [clone(clf) for clf in self.regressors]
+            self.meta_regr_ = clone(self.meta_regressor)
+        else:
+            self.regr_ = self.regressors
+            self.meta_regr_ = self.meta_regressor
+
+        X, y = check_X_y(X, y, accept_sparse=['csc', 'csr'], dtype=None)
 
         kfold = check_cv(self.cv, y)
         if isinstance(self.cv, int):
             # Override shuffle parameter in case of self generated
             # cross-validation strategy
             kfold.shuffle = self.shuffle
-
-        meta_features = np.zeros((X.shape[0], len(self.regressors)))
-
+            kfold.random_state = self.random_state
         #
-        # The outer loop iterates over the base-regressors. Each regressor
-        # is trained cv times and makes predictions, after which we train
-        # the meta-regressor on their combined results.
-        #
-        for i, regr in enumerate(self.regressors):
-            #
-            # In the inner loop, each model is trained cv times on the
-            # training-part of this fold of data; and the holdout-part of data
-            # is used for predictions. This is repeated cv times, so in
-            # the end we have predictions for each data point.
-            #
-            # Advantage of this complex approach is that data points we're
-            # predicting have not been trained on by the algorithm, so it's
-            # less susceptible to overfitting.
-            #
-            for train_idx, holdout_idx in kfold.split(X, y, groups):
-                instance = clone(regr)
-                instance.fit(X[train_idx], y[train_idx])
-                y_pred = instance.predict(X[holdout_idx])
-                meta_features[holdout_idx, i] = y_pred
+        # The meta_features are collection of the prediction data,
+        # in shape of [n_samples, len(self.regressors)]. Each column
+        # corresponds to the result of `corss_val_predict` using every
+        # base regressors.
+        # Advantage of this complex approach is that data points we're
+        # predicting have not been trained on by the algorithm, so it's
+        # less susceptible to overfitting.
+        if sample_weight is None:
+            fit_params = None
+        else:
+            fit_params = dict(sample_weight=sample_weight)
+        meta_features = np.column_stack([cross_val_predict(
+                regr, X, y, groups=groups, cv=kfold,
+                verbose=self.verbose, n_jobs=self.n_jobs,
+                fit_params=fit_params, pre_dispatch=self.pre_dispatch)
+                    for regr in self.regr_])
 
         # save meta-features for training data
         if self.store_train_meta_features:
             self.train_meta_features_ = meta_features
 
         # Train meta-model on the out-of-fold predictions
-        if self.use_features_in_secondary:
-            self.meta_regr_.fit(np.hstack((X, meta_features)), y)
+        if not self.use_features_in_secondary:
+            pass
+        elif sparse.issparse(X):
+            meta_features = sparse.hstack((X, meta_features))
         else:
+            meta_features = np.hstack((X, meta_features))
+
+        if sample_weight is None:
             self.meta_regr_.fit(meta_features, y)
+        else:
+            self.meta_regr_.fit(meta_features, y, sample_weight=sample_weight)
 
         # Retrain base models on all data
         for regr in self.regr_:
-            regr.fit(X, y)
+            if sample_weight is None:
+                regr.fit(X, y)
+            else:
+                regr.fit(X, y, sample_weight=sample_weight)
 
         return self
 
@@ -190,18 +236,18 @@ class StackingCVRegressor(BaseEstimator, RegressorMixin, TransformerMixin):
         # the meta-model from that info.
         #
 
-        if not hasattr(self, 'regr_'):
-            raise NotFittedError("Estimator not fitted, "
-                                 "call `fit` before exploiting the model.")
+        check_is_fitted(self, 'regr_')
 
         meta_features = np.column_stack([
             regr.predict(X) for regr in self.regr_
         ])
 
-        if self.use_features_in_secondary:
-            return self.meta_regr_.predict(np.hstack((X, meta_features)))
-        else:
+        if not self.use_features_in_secondary:
             return self.meta_regr_.predict(meta_features)
+        elif sparse.issparse(X):
+            return self.meta_regr_.predict(sparse.hstack((X, meta_features)))
+        else:
+            return self.meta_regr_.predict(np.hstack((X, meta_features)))
 
     def predict_meta_features(self, X):
         """ Get meta-features of test-data.
@@ -220,30 +266,32 @@ class StackingCVRegressor(BaseEstimator, RegressorMixin, TransformerMixin):
             of regressors.
 
         """
-        if not hasattr(self, 'regr_'):
-            raise NotFittedError("Estimator not fitted, "
-                                 "call `fit` before exploiting the model.")
+        check_is_fitted(self, 'regr_')
         return np.column_stack([regr.predict(X) for regr in self.regr_])
+
+    @property
+    def named_regressors(self):
+        """
+        Returns
+        -------
+        List of named estimator tuples, like [('svc', SVC(...))]
+        """
+        return _name_estimators(self.regressors)
 
     def get_params(self, deep=True):
         #
         # Return estimator parameter names for GridSearch support.
         #
-        if not deep:
-            return super(StackingCVRegressor, self).get_params(deep=False)
-        else:
-            out = self.named_regressors.copy()
-            for name, step in six.iteritems(self.named_regressors):
-                for key, value in six.iteritems(step.get_params(deep=True)):
-                    out['%s__%s' % (name, key)] = value
+        return self._get_params('named_regressors', deep=deep)
 
-            out.update(self.named_meta_regressor.copy())
-            for name, step in six.iteritems(self.named_meta_regressor):
-                for key, value in six.iteritems(step.get_params(deep=True)):
-                    out['%s__%s' % (name, key)] = value
+    def set_params(self, **params):
+        """Set the parameters of this estimator.
 
-            for key, value in six.iteritems(super(StackingCVRegressor,
-                                            self).get_params(deep=False)):
-                out['%s' % key] = value
+        Valid parameter keys can be listed with ``get_params()``.
 
-            return out
+        Returns
+        -------
+        self
+        """
+        self._set_params('regressors', 'named_regressors', **params)
+        return self

@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for loading a sample dataset for clustering evaluations
@@ -25,6 +25,11 @@ def three_blobs_data():
         X is the feature matrix with 159 samples as rows
         and 2 feature columns.
         y is a 1-dimensional array of the 3 suggested cluster labels 0, 1, 2
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/data/three_blobs_data
 
     """
     tmp = np.genfromtxt(fname=DATA_PATH, delimiter=',')

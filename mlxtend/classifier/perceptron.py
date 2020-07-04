@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Implementation of Rosenblatt's perceptron algorithm for classification.
@@ -44,6 +44,11 @@ class Perceptron(_BaseModel, _IterativeModel, _Classifier):
       Bias unit after fitting.
     cost_ : list
         Number of misclassifications in every epoch.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/classifier/Perceptron/
 
     """
     def __init__(self, eta=0.1, epochs=50, random_seed=None,

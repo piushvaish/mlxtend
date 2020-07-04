@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Implementation of the mulitnomial logistic regression algorithm for
@@ -16,7 +16,8 @@ from .._base import _MultiClass
 from .._base import _Classifier
 
 
-class SoftmaxRegression(_BaseModel, _IterativeModel, _Classifier,  _MultiClass):
+class SoftmaxRegression(_BaseModel, _IterativeModel,
+                        _Classifier,  _MultiClass):
 
     """Softmax regression classifier.
 
@@ -57,6 +58,11 @@ class SoftmaxRegression(_BaseModel, _IterativeModel, _Classifier,  _MultiClass):
       Bias unit after fitting.
     cost_ : list
         List of floats, the average cross_entropy for each epoch.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/classifier/SoftmaxRegression/
 
     """
     def __init__(self, eta=0.01, epochs=50,

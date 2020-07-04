@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Nonparametric Permutation Test
@@ -59,6 +59,11 @@ def permutation_test(x, y, func='x_mean != y_mean', method='exact',
     Returns
     ----------
     p-value under the null hypothesis
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/evaluate/permutation_test/
 
     """
 

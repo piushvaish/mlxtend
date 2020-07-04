@@ -1,6 +1,6 @@
 # IPython Notebook to Markdown conversion script
 #
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Author: Sebastian Raschka <sebastianraschka.com>
@@ -54,10 +54,7 @@ def ipynb_to_md(ipynb_path):
             if line.lstrip().startswith('#'):
                 break
         for line in f:
-            if line.lstrip().startswith('```'):
-                continue
-            else:
-                new_s.append(line[4:])
+            new_s.append(line[4:])
 
     with open(md_name, 'w') as f:
         f.write(''.join(new_s))

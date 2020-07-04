@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Implementation of the logistic regression algorithm for classification.
@@ -54,6 +54,11 @@ class LogisticRegression(_BaseModel, _IterativeModel, _Classifier):
     cost_ : list
         List of floats with cross_entropy cost (sgd or gd) for every
         epoch.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/classifier/LogisticRegression/
 
     """
     def __init__(self, eta=0.01, epochs=50,

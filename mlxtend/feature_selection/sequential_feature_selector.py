@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Algorithm for sequential feature selection.
@@ -7,6 +7,7 @@
 # License: BSD 3 clause
 
 import datetime
+import types
 import numpy as np
 import scipy as sp
 import scipy.stats
@@ -15,28 +16,56 @@ from copy import deepcopy
 from itertools import combinations
 from sklearn.metrics import get_scorer
 from sklearn.base import clone
-from sklearn.base import BaseEstimator
 from sklearn.base import MetaEstimatorMixin
 from ..externals.name_estimators import _name_estimators
+from ..utils.base_compostion import _BaseXComposition
 from sklearn.model_selection import cross_val_score
-from sklearn.externals.joblib import Parallel, delayed
+from joblib import Parallel, delayed
 
 
-def _calc_score(selector, X, y, indices):
+def _calc_score(selector, X, y, indices, groups=None, **fit_params):
     if selector.cv:
         scores = cross_val_score(selector.est_,
                                  X[:, indices], y,
+                                 groups=groups,
                                  cv=selector.cv,
                                  scoring=selector.scorer,
                                  n_jobs=1,
-                                 pre_dispatch=selector.pre_dispatch)
+                                 pre_dispatch=selector.pre_dispatch,
+                                 fit_params=fit_params)
     else:
-        selector.est_.fit(X[:, indices], y)
+        selector.est_.fit(X[:, indices], y, **fit_params)
         scores = np.array([selector.scorer(selector.est_, X[:, indices], y)])
     return indices, scores
 
 
-class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
+def _get_featurenames(subsets_dict, feature_idx, custom_feature_names, X):
+    feature_names = None
+    if feature_idx is not None:
+        if custom_feature_names is not None:
+            feature_names = tuple((custom_feature_names[i]
+                                   for i in feature_idx))
+        elif hasattr(X, 'loc'):
+            feature_names = tuple((X.columns[i] for i in feature_idx))
+        else:
+            feature_names = tuple(str(i) for i in feature_idx)
+
+    subsets_dict_ = deepcopy(subsets_dict)
+    for key in subsets_dict_:
+        if custom_feature_names is not None:
+            new_tuple = tuple((custom_feature_names[i]
+                               for i in subsets_dict[key]['feature_idx']))
+        elif hasattr(X, 'loc'):
+            new_tuple = tuple((X.columns[i]
+                               for i in subsets_dict[key]['feature_idx']))
+        else:
+            new_tuple = tuple(str(i) for i in subsets_dict[key]['feature_idx'])
+        subsets_dict_[key]['feature_names'] = new_tuple
+
+    return subsets_dict_, feature_names
+
+
+class SequentialFeatureSelector(_BaseXComposition, MetaEstimatorMixin):
 
     """Sequential Feature Selection for Classification and Regression.
 
@@ -78,11 +107,10 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
         http://scikit-learn.org/stable/modules/generated/sklearn.metrics.make_scorer.html
         for more information.
     cv : int (default: 5)
-        Scikit-learn cross-validation generator or `int`.
-        If estimator is a classifier (or y consists of integer class labels),
-        stratified k-fold is performed, and regular k-fold cross-validation
-        otherwise.
-        No cross-validation if cv is None, False, or 0.
+        Integer or iterable yielding train, test splits. If cv is an integer
+        and `estimator` is a classifier (or y consists of integer class
+        labels) stratified k-fold. Otherwise regular k-fold cross-validation
+        is performed. No cross-validation if cv is None, False, or 0.
     n_jobs : int (default: 1)
         The number of CPUs to use for evaluating different feature subsets
         in parallel. -1 means 'all CPUs'.
@@ -103,11 +131,26 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
         if False. Set to False if the estimator doesn't
         implement scikit-learn's set_params and get_params methods.
         In addition, it is required to set cv=0, and n_jobs=1.
+    fixed_features : tuple (default: None)
+        If not `None`, the feature indices provided as a tuple will be
+        regarded as fixed by the feature selector. For example, if
+        `fixed_features=(1, 3, 7)`, the 2nd, 4th, and 8th feature are
+        guaranteed to be present in the solution. Note that if
+        `fixed_features` is not `None`, make sure that the number of
+        features to be selected is greater than `len(fixed_features)`.
+        In other words, ensure that `k_features > len(fixed_features)`.
+        New in mlxtend v. 0.18.0.
 
     Attributes
     ----------
     k_feature_idx_ : array-like, shape = [n_predictions]
         Feature Indices of the selected feature subsets.
+    k_feature_names_ : array-like, shape = [n_predictions]
+        Feature names of the selected feature subsets. If pandas
+        DataFrames are used in the `fit` method, the feature
+        names correspond to the column names. Otherwise, the
+        feature names are string representation of the feature
+        array indices. New in v 0.13.0.
     k_score_ : float
         Cross validation average score of the selected subset.
     subsets_ : dict
@@ -116,8 +159,19 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
         the lengths k of these feature subsets. The dictionary
         values are dictionaries themselves with the following
         keys: 'feature_idx' (tuple of indices of the feature subset)
+              'feature_names' (tuple of feature names of the feat. subset)
               'cv_scores' (list individual cross-validation scores)
               'avg_score' (average cross-validation score)
+        Note that if pandas
+        DataFrames are used in the `fit` method, the 'feature_names'
+        correspond to the column names. Otherwise, the
+        feature names are string representation of the feature
+        array indices. The 'feature_names' is new in v 0.13.0.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/feature_selection/SequentialFeatureSelector/
 
     """
     def __init__(self, estimator, k_features=1,
@@ -125,23 +179,49 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                  verbose=0, scoring=None,
                  cv=5, n_jobs=1,
                  pre_dispatch='2*n_jobs',
-                 clone_estimator=True):
+                 clone_estimator=True,
+                 fixed_features=None):
 
         self.estimator = estimator
         self.k_features = k_features
         self.forward = forward
         self.floating = floating
         self.pre_dispatch = pre_dispatch
-        self.cv = cv
-        self.n_jobs = n_jobs
-        self.named_est = {key: value for key, value in
-                          _name_estimators([self.estimator])}
+        # Want to raise meaningful error message if a
+        # cross-validation generator is inputted
+        if isinstance(cv, types.GeneratorType):
+            err_msg = ('Input cv is a generator object, which is not '
+                       'supported. Instead please input an iterable yielding '
+                       'train, test splits. This can usually be done by '
+                       'passing a cross-validation generator to the '
+                       'built-in list function. I.e. cv=list(<cv-generator>)')
+            raise TypeError(err_msg)
         self.cv = cv
         self.n_jobs = n_jobs
         self.verbose = verbose
-        self.named_est = {key: value for key, value in
-                          _name_estimators([self.estimator])}
         self.clone_estimator = clone_estimator
+
+        if fixed_features is not None:
+            if isinstance(self.k_features, int) and \
+                    self.k_features <= len(fixed_features):
+                raise ValueError('Number of features to be selected must'
+                                 ' be larger than the number of'
+                                 ' features specified via `fixed_features`.'
+                                 ' Got `k_features=%d` and'
+                                 ' `fixed_features=%d`' %
+                                 (k_features, len(fixed_features)))
+
+            elif isinstance(self.k_features, tuple) and \
+                    self.k_features[0] <= len(fixed_features):
+                raise ValueError('The minimum number of features to'
+                                 ' be selected must'
+                                 ' be larger than the number of'
+                                 ' features specified via `fixed_features`.'
+                                 ' Got `k_features=%s` and '
+                                 '`len(fixed_features)=%d`' %
+                                 (k_features, len(fixed_features)))
+
+        self.fixed_features = fixed_features
 
         if self.clone_estimator:
             self.est_ = clone(self.estimator)
@@ -169,7 +249,33 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
         # don't mess with this unless testing
         self._TESTING_INTERRUPT_MODE = False
 
-    def fit(self, X, y):
+    @property
+    def named_estimators(self):
+        """
+        Returns
+        -------
+        List of named estimator tuples, like [('svc', SVC(...))]
+        """
+        return _name_estimators([self.estimator])
+
+    def get_params(self, deep=True):
+        #
+        # Return estimator parameter names for GridSearch support.
+        #
+        return self._get_params('named_estimators', deep=deep)
+
+    def set_params(self, **params):
+        """Set the parameters of this estimator.
+        Valid parameter keys can be listed with ``get_params()``.
+
+        Returns
+        -------
+        self
+        """
+        self._set_params('estimator', 'named_estimators', **params)
+        return self
+
+    def fit(self, X, y, custom_feature_names=None, groups=None, **fit_params):
         """Perform feature selection and learn model from training data.
 
         Parameters
@@ -177,22 +283,66 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
         X : {array-like, sparse matrix}, shape = [n_samples, n_features]
             Training vectors, where n_samples is the number of samples and
             n_features is the number of features.
+            New in v 0.13.0: pandas DataFrames are now also accepted as
+            argument for X.
         y : array-like, shape = [n_samples]
             Target values.
+            New in v 0.13.0: pandas DataFrames are now also accepted as
+            argument for y.
+        custom_feature_names : None or tuple (default: tuple)
+            Custom feature names for `self.k_feature_names` and
+            `self.subsets_[i]['feature_names']`.
+            (new in v 0.13.0)
+        groups : array-like, with shape (n_samples,), optional
+            Group labels for the samples used while splitting the dataset into
+            train/test set. Passed to the fit method of the cross-validator.
+        fit_params : dict of string -> object, optional
+            Parameters to pass to to the fit method of classifier.
 
         Returns
         -------
         self : object
 
         """
+
+        # reset from a potential previous fit run
+        self.subsets_ = {}
+        self.fitted = False
+        self.interrupted_ = False
+        self.k_feature_idx_ = None
+        self.k_feature_names_ = None
+        self.k_score_ = None
+
+        self.fixed_features_ = self.fixed_features
+        self.fixed_features_set_ = set()
+
+        if hasattr(X, 'loc'):
+            X_ = X.values
+            if self.fixed_features is not None:
+                self.fixed_features_ = tuple(X.columns.get_loc(c)
+                                             if isinstance(c, str) else c
+                                             for c in self.fixed_features
+                                             )
+        else:
+            X_ = X
+
+        if self.fixed_features is not None:
+            self.fixed_features_set_ = set(self.fixed_features_)
+
+        if (custom_feature_names is not None
+                and len(custom_feature_names) != X.shape[1]):
+            raise ValueError('If custom_feature_names is not None, '
+                             'the number of elements in custom_feature_names '
+                             'must equal the number of columns in X.')
+
         if not isinstance(self.k_features, int) and\
                 not isinstance(self.k_features, tuple)\
                 and not isinstance(self.k_features, str):
-                raise AttributeError('k_features must be a positive integer'
-                                     ', tuple, or string')
+            raise AttributeError('k_features must be a positive integer'
+                                 ', tuple, or string')
 
-        if isinstance(self.k_features, int) and (self.k_features < 1 or
-                                                 self.k_features > X.shape[1]):
+        if (isinstance(self.k_features, int) and (
+                self.k_features < 1 or self.k_features > X_.shape[1])):
             raise AttributeError('k_features must be a positive integer'
                                  ' between 1 and X.shape[1], got %s'
                                  % (self.k_features, ))
@@ -202,11 +352,11 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                 raise AttributeError('k_features tuple must consist of 2'
                                      ' elements a min and a max value.')
 
-            if self.k_features[0] not in range(1, X.shape[1] + 1):
+            if self.k_features[0] not in range(1, X_.shape[1] + 1):
                 raise AttributeError('k_features tuple min value must be in'
                                      ' range(1, X.shape[1]+1).')
 
-            if self.k_features[1] not in range(1, X.shape[1] + 1):
+            if self.k_features[1] not in range(1, X_.shape[1] + 1):
                 raise AttributeError('k_features tuple max value must be in'
                                      ' range(1, X.shape[1]+1).')
 
@@ -225,7 +375,7 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                                          'it must be "best" or "parsimonious"')
                 else:
                     min_k = 1
-                    max_k = X.shape[1]
+                    max_k = X_.shape[1]
             else:
                 min_k = self.k_features[0]
                 max_k = self.k_features[1]
@@ -234,21 +384,38 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
             select_in_range = False
             k_to_select = self.k_features
 
-        self.subsets_ = {}
-        orig_set = set(range(X.shape[1]))
-        n_features = X.shape[1]
+        orig_set = set(range(X_.shape[1]))
+        n_features = X_.shape[1]
+
+        if self.forward and self.fixed_features is not None:
+            orig_set = set(range(X_.shape[1])) - self.fixed_features_set_
+            n_features = len(orig_set)
 
         if self.forward:
             if select_in_range:
                 k_to_select = max_k
-            k_idx = ()
-            k = 0
+
+            if self.fixed_features is not None:
+                k_idx = self.fixed_features_
+                k = len(k_idx)
+                k_idx, k_score = _calc_score(self, X_, y, k_idx,
+                                             groups=groups, **fit_params)
+                self.subsets_[k] = {
+                    'feature_idx': k_idx,
+                    'cv_scores': k_score,
+                    'avg_score': np.nanmean(k_score)
+                }
+
+            else:
+                k_idx = ()
+                k = 0
         else:
             if select_in_range:
                 k_to_select = min_k
-            k_idx = tuple(range(X.shape[1]))
+            k_idx = tuple(orig_set)
             k = len(k_idx)
-            k_idx, k_score = _calc_score(self, X, y, k_idx)
+            k_idx, k_score = _calc_score(self, X_, y, k_idx,
+                                         groups=groups, **fit_params)
             self.subsets_[k] = {
                 'feature_idx': k_idx,
                 'cv_scores': k_score,
@@ -265,15 +432,19 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                     k_idx, k_score, cv_scores = self._inclusion(
                         orig_set=orig_set,
                         subset=prev_subset,
-                        X=X,
-                        y=y
+                        X=X_,
+                        y=y,
+                        groups=groups,
+                        **fit_params
                     )
                 else:
-
                     k_idx, k_score, cv_scores = self._exclusion(
                         feature_set=prev_subset,
-                        X=X,
-                        y=y
+                        X=X_,
+                        y=y,
+                        groups=groups,
+                        fixed_feature=self.fixed_features_set_,
+                        **fit_params
                     )
 
                 if self.floating:
@@ -294,19 +465,32 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                             (new_feature,) = set(k_idx) ^ prev_subset
 
                         if self.forward:
-                            k_idx_c, k_score_c, cv_scores_c = self._exclusion(
-                                feature_set=k_idx,
-                                fixed_feature=new_feature,
-                                X=X,
-                                y=y
-                            )
+
+                            fixed_features_ok = True
+                            if self.fixed_features is not None and \
+                                    len(self.fixed_features) - len(k_idx) <= 1:
+                                fixed_features_ok = False
+                            if fixed_features_ok:
+                                k_idx_c, k_score_c, cv_scores_c = \
+                                    self._exclusion(
+                                        feature_set=k_idx,
+                                        fixed_feature=(
+                                            {new_feature} |
+                                            self.fixed_features_set_),
+                                        X=X_,
+                                        y=y,
+                                        groups=groups,
+                                        **fit_params
+                                    )
 
                         else:
                             k_idx_c, k_score_c, cv_scores_c = self._inclusion(
                                 orig_set=orig_set - {new_feature},
                                 subset=set(k_idx),
-                                X=X,
-                                y=y
+                                X=X_,
+                                y=y,
+                                groups=groups,
+                                **fit_params
                             )
 
                         if k_score_c is not None and k_score_c > k_score:
@@ -358,9 +542,14 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                     ))
 
                 if self._TESTING_INTERRUPT_MODE:
+                    self.subsets_, self.k_feature_names_ = \
+                        _get_featurenames(self.subsets_,
+                                          self.k_feature_idx_,
+                                          custom_feature_names,
+                                          X)
                     raise KeyboardInterrupt
 
-        except KeyboardInterrupt as e:
+        except KeyboardInterrupt:
             self.interrupted_ = True
             sys.stderr.write('\nSTOPPING EARLY DUE TO KEYBOARD INTERRUPT...')
 
@@ -391,11 +580,16 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
 
         self.k_feature_idx_ = k_idx
         self.k_score_ = k_score
-        self.subsets_plus_ = dict()
         self.fitted = True
+        self.subsets_, self.k_feature_names_ = \
+            _get_featurenames(self.subsets_,
+                              self.k_feature_idx_,
+                              custom_feature_names,
+                              X)
         return self
 
-    def _inclusion(self, orig_set, subset, X, y, ignore_feature=None):
+    def _inclusion(self, orig_set, subset, X, y, ignore_feature=None,
+                   groups=None, **fit_params):
         all_avg_scores = []
         all_cv_scores = []
         all_subsets = []
@@ -407,7 +601,9 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
             parallel = Parallel(n_jobs=n_jobs, verbose=self.verbose,
                                 pre_dispatch=self.pre_dispatch)
             work = parallel(delayed(_calc_score)
-                            (self, X, y, tuple(subset | {feature}))
+                            (self, X, y,
+                             tuple(subset | {feature}),
+                             groups=groups, **fit_params)
                             for feature in remaining
                             if feature != ignore_feature)
 
@@ -422,7 +618,8 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                    all_cv_scores[best])
         return res
 
-    def _exclusion(self, feature_set, X, y, fixed_feature=None):
+    def _exclusion(self, feature_set, X, y, fixed_feature=None,
+                   groups=None, **fit_params):
         n = len(feature_set)
         res = (None, None, None)
         if n > 1:
@@ -433,9 +630,11 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
             n_jobs = min(self.n_jobs, features)
             parallel = Parallel(n_jobs=n_jobs, verbose=self.verbose,
                                 pre_dispatch=self.pre_dispatch)
-            work = parallel(delayed(_calc_score)(self, X, y, p)
+            work = parallel(delayed(_calc_score)(self, X, y, p,
+                                                 groups=groups, **fit_params)
                             for p in combinations(feature_set, r=n - 1)
-                            if not fixed_feature or fixed_feature in set(p))
+                            if not fixed_feature or
+                            fixed_feature.issubset(set(p)))
 
             for p, cv_scores in work:
 
@@ -457,6 +656,8 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
         X : {array-like, sparse matrix}, shape = [n_samples, n_features]
             Training vectors, where n_samples is the number of samples and
             n_features is the number of features.
+            New in v 0.13.0: pandas DataFrames are now also accepted as
+            argument for X.
 
         Returns
         -------
@@ -464,9 +665,13 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
 
         """
         self._check_fitted()
-        return X[:, self.k_feature_idx_]
+        if hasattr(X, 'loc'):
+            X_ = X.values
+        else:
+            X_ = X
+        return X_[:, self.k_feature_idx_]
 
-    def fit_transform(self, X, y):
+    def fit_transform(self, X, y, groups=None, **fit_params):
         """Fit to training data then reduce X to its most important features.
 
         Parameters
@@ -474,13 +679,24 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
         X : {array-like, sparse matrix}, shape = [n_samples, n_features]
             Training vectors, where n_samples is the number of samples and
             n_features is the number of features.
+            New in v 0.13.0: pandas DataFrames are now also accepted as
+            argument for X.
+        y : array-like, shape = [n_samples]
+            Target values.
+            New in v 0.13.0: a pandas Series are now also accepted as
+            argument for y.
+        groups : array-like, with shape (n_samples,), optional
+            Group labels for the samples used while splitting the dataset into
+            train/test set. Passed to the fit method of the cross-validator.
+        fit_params : dict of string -> object, optional
+            Parameters to pass to to the fit method of classifier.
 
         Returns
         -------
         Reduced feature subset of X, shape={n_samples, k_features}
 
         """
-        self.fit(X, y)
+        self.fit(X, y, groups=groups, **fit_params)
         return self.transform(X)
 
     def get_metric_dict(self, confidence_interval=0.95):

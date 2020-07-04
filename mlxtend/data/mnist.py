@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for loading the open-source MNIST.
@@ -25,6 +25,11 @@ def mnist_data():
         each row consists of 28x28 pixels that were unrolled into
         784 pixel feature vectors.
         y contains the 10 unique class labels 0-9.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/data/mnist_data/
 
     """
     tmp = np.genfromtxt(fname=DATA_PATH, delimiter=',')

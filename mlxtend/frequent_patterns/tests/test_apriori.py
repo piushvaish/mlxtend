@@ -1,54 +1,61 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 # Author: Sebastian Raschka <sebastianraschka.com>
 #
 # License: BSD 3 clause
 
+import unittest
 import numpy as np
+from test_fpbase import FPTestEdgeCases, FPTestErrors, \
+                        FPTestEx1All, FPTestEx2All, FPTestEx3All
 from mlxtend.frequent_patterns import apriori
-from numpy.testing import assert_array_equal
-import pandas as pd
-
-dataset = [['Milk', 'Onion', 'Nutmeg', 'Kidney Beans', 'Eggs', 'Yogurt'],
-           ['Dill', 'Onion', 'Nutmeg', 'Kidney Beans', 'Eggs', 'Yogurt'],
-           ['Milk', 'Apple', 'Kidney Beans', 'Eggs'],
-           ['Milk', 'Unicorn', 'Corn', 'Kidney Beans', 'Yogurt'],
-           ['Corn', 'Onion', 'Onion', 'Kidney Beans', 'Ice cream', 'Eggs']]
-
-one_ary = np.array([[0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1],
-                    [0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1],
-                    [1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0],
-                    [0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1],
-                    [0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0]])
-
-cols = ['Apple', 'Corn', 'Dill', 'Eggs', 'Ice cream', 'Kidney Beans', 'Milk',
-        'Nutmeg', 'Onion', 'Unicorn', 'Yogurt']
-
-df = pd.DataFrame(one_ary, columns=cols)
 
 
-def test_default():
-    res_df = apriori(df)
-    expect = pd.DataFrame([[0.8, np.array([3]), 1],
-                           [1.0, np.array([5]), 1],
-                           [0.6, np.array([6]), 1],
-                           [0.6, np.array([8]), 1],
-                           [0.6, np.array([10]), 1],
-                           [0.8, np.array([3, 5]), 2],
-                           [0.6, np.array([3, 8]), 2],
-                           [0.6, np.array([5, 6]), 2],
-                           [0.6, np.array([5, 8]), 2],
-                           [0.6, np.array([5, 10]), 2],
-                           [0.6, np.array([3, 5, 8]), 3]],
-                          columns=['support', 'itemsets', 'length'])
-
-    for a, b in zip(res_df, expect):
-        assert_array_equal(a, b)
+def apriori_wrapper_low_memory(*args, **kwargs):
+    return apriori(*args, **kwargs, low_memory=True)
 
 
-def test_max_len():
-    res_df1 = apriori(df)
-    assert len(res_df1.iloc[-1, -1]) == 3
+class TestEdgeCases(unittest.TestCase, FPTestEdgeCases):
+    def setUp(self):
+        FPTestEdgeCases.setUp(self, apriori)
 
-    res_df2 = apriori(df, max_len=2)
-    assert len(res_df2.iloc[-1, -1]) == 2
+
+class TestErrors(unittest.TestCase, FPTestErrors):
+    def setUp(self):
+        FPTestErrors.setUp(self, apriori)
+
+
+class TestApriori(unittest.TestCase, FPTestEx1All):
+    def setUp(self):
+        FPTestEx1All.setUp(self, apriori)
+
+
+class TestAprioriLowMemory(unittest.TestCase, FPTestEx1All):
+    def setUp(self):
+        FPTestEx1All.setUp(self, apriori_wrapper_low_memory)
+
+
+class TestAprioriBoolInput(unittest.TestCase, FPTestEx1All):
+    def setUp(self):
+        one_ary = np.array(
+            [[False, False, False, True, False, True, True, True, True,
+              False, True],
+             [False, False, True, True, False, True, False, True, True,
+              False, True],
+             [True, False, False, True, False, True, True, False, False,
+              False, False],
+             [False, True, False, False, False, True, True, False, False,
+              True, True],
+             [False, True, False, True, True, True, False, False, True,
+              False, False]])
+        FPTestEx1All.setUp(self, apriori, one_ary=one_ary)
+
+
+class TestEx2(unittest.TestCase, FPTestEx2All):
+    def setUp(self):
+        FPTestEx2All.setUp(self, apriori)
+
+
+class TestEx3(unittest.TestCase, FPTestEx3All):
+    def setUp(self):
+        FPTestEx3All.setUp(self, apriori)

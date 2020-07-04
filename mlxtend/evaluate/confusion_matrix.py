@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for generating a confusion matrix.
@@ -30,6 +30,11 @@ def confusion_matrix(y_target, y_predicted, binary=False, positive_label=1):
     Returns
     ----------
     mat : array-like, shape=[n_classes, n_classes]
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/evaluate/confusion_matrix/
 
     """
     if not isinstance(y_target, np.ndarray):

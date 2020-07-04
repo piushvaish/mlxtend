@@ -1,6 +1,6 @@
 # API generator script
 #
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Author: Sebastian Raschka <sebastianraschka.com>
@@ -8,7 +8,6 @@
 # License: BSD 3 clause
 
 
-import string
 import inspect
 import os
 import sys
@@ -19,6 +18,21 @@ import shutil
 def _obj_name(obj):
     if hasattr(obj, '__name__'):
         return obj.__name__
+
+
+def make_markdown_url(line_string, s):
+    """
+    Turns an URL starting with s into
+    a markdown link
+    """
+    new_line = []
+    old_line = line_string.split(' ')
+    for token in old_line:
+        if not token.startswith(s):
+            new_line.append(token)
+        else:
+            new_line.append('[%s](%s)' % (token, token))
+    return ' '.join(new_line)
 
 
 def docstring_to_markdown(docstring):
@@ -41,8 +55,10 @@ def docstring_to_markdown(docstring):
         line = line.strip()
         if set(line) in ({'-'}, {'='}):
             new_docstring_lst[idx - 1] = '**%s**' % new_docstring_lst[idx - 1]
+
         elif line.startswith('>>>'):
             line = '    %s' % line
+
         new_docstring_lst.append(line)
 
     param_encountered = False
@@ -62,7 +78,25 @@ def docstring_to_markdown(docstring):
 
     clean_lst = []
     for line in new_docstring_lst:
-        if set(line.strip()) not in ({'-'}, {'='}):
+
+        if 'http://rasbt.github.io/' in line:
+            line = make_markdown_url(line_string=line,
+                                     s='http://rasbt.github.io/')
+
+            if len(clean_lst) > 0 and \
+                    clean_lst[-1].lstrip().startswith(
+                        'For more usage examples'):
+                clean_lst[-1] = clean_lst[-1].lstrip()
+                line = line.lstrip()
+
+        if line.startswith('\n>>>'):
+            clean_lst.append('\n')
+            clean_lst.append('    ' + line[1:])
+        elif line.startswith('        ```'):
+            clean_lst.append(line[8:])
+        elif line.startswith('    ```'):
+            clean_lst.append(line[4:])
+        elif set(line.strip()) not in ({'-'}, {'='}):
             clean_lst.append(line)
     return clean_lst
 
@@ -201,7 +235,8 @@ def get_functions_and_classes(package):
     return classes, functions
 
 
-def generate_api_docs(package, api_dir, clean=False, printlog=True):
+def generate_api_docs(package, api_dir, clean=False,
+                      printlog=True, ignore_packages=None):
     """Generate a module level API documentation of a python package.
 
     Description
@@ -219,6 +254,11 @@ def generate_api_docs(package, api_dir, clean=False, printlog=True):
         Removes previously existing API directory if True.
     printlog : bool (default: True)
         Prints a progress log to the standard output screen if True.
+    ignore_packages : iterable or None (default: None)
+        Iterable (list, set, tuple) that contains the names of packages
+        and subpackages to ignore or skip. For instance, if the
+        images subpackage in mlxtend is supposed to be split, provide the
+        argument `{mlxtend.image}`.
 
     """
     if printlog:
@@ -235,6 +275,11 @@ def generate_api_docs(package, api_dir, clean=False, printlog=True):
     api_docs = {}
     for importer, pkg_name, is_pkg in pkgutil.iter_modules(
             package.__path__, prefix):
+
+        if ignore_packages is not None and pkg_name in ignore_packages:
+            if printlog:
+                print('ignored %s' % pkg_name)
+            continue
         if is_pkg:
             subpackage = __import__(pkg_name, fromlist="dummy")
             prefix = subpackage.__name__ + "."
@@ -338,9 +383,11 @@ def summarize_methdods_and_functions(api_modules, out_dir,
         new_output = []
         if str_above_header:
             new_output.append(str_above_header)
-        for p in module_paths:
+        for p in sorted(module_paths):
             with open(p, 'r') as r:
+
                 new_output.extend(r.readlines())
+                new_output.extend(['\n', '\n', '\n'])
 
         msg = ''
         if not os.path.isfile(out_f):
@@ -382,7 +429,7 @@ if __name__ == "__main__":
     parser.add_argument('-o2', '--output_subpackage_api',
                         default='../docs/sources/api_subpackages',
                         help=('Target directory for the'
-                              'subpackage-level API Markdown files'))
+                              ' subpackage-level API Markdown files'))
     parser.add_argument('-c', '--clean',
                         action='store_true',
                         help='Remove previous API files')
@@ -392,13 +439,24 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--version',
                         action='version',
                         version='v. 0.1')
+    parser.add_argument('--ignore_packages',
+                        default='',
+                        help='Ignores subpackages listed via this option.'
+                             ' For example, to ignore mlxtend.image,'
+                             ' type "mlxtend.image".'
+                             ' For multiple subpackages, separate them via,'
+                             ' commas. For example,'
+                             ' "mlxtend.image,mlxtend.plotting".')
 
     args = parser.parse_args()
+
+    ignore_packages_set = set(args.ignore_packages.split(","))
 
     package = import_package(args.package_dir, args.package_name)
     generate_api_docs(package=package,
                       api_dir=args.output_module_api,
                       clean=args.clean,
+                      ignore_packages=ignore_packages_set,
                       printlog=not(args.silent))
     summarize_methdods_and_functions(api_modules=args.output_module_api,
                                      out_dir=args.output_subpackage_api,
@@ -406,4 +464,4 @@ if __name__ == "__main__":
                                      clean=args.clean,
                                      str_above_header=('mlxtend'
                                                        ' version: %s \n' % (
-                                                       package.__version__)))
+                                                        package.__version__)))

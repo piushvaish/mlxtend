@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for loading the open-source Boston Housing dataset.
@@ -47,8 +47,12 @@ def boston_housing_data():
         and 13 feature columns.
         y is a 1-dimensional array of the continuous target variable MEDV
 
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/data/boston_housing_data/
+
     """
     tmp = np.genfromtxt(fname=DATA_PATH, delimiter=',', dtype=float)
-    print(tmp.shape)
     X, y = tmp[:, :-1], tmp[:, -1]
     return X, y

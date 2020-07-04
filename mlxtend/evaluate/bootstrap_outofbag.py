@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Bootstrap functions
@@ -30,6 +30,12 @@ class BootstrapOutOfBag(object):
 
     test_idx : ndarray
         The testing set indices for that split.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/evaluate/BootstrapOutOfBag/
+
     """
 
     def __init__(self, n_splits=200, random_seed=None):

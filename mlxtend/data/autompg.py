@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for loading the open-source AutoMPG dataset.
@@ -38,6 +38,11 @@ def autompg_data():
         X is the feature matrix with 392 auto samples as rows
         and 8 feature columns (6 rows with NaNs removed).
         y is a 1-dimensional array of the target MPG values.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/data/autompg_data/
 
     """
     tmp = np.genfromtxt(fname=DATA_PATH, delimiter=',')

@@ -24,11 +24,16 @@
 - [wine_data](user_guide/data/wine_data.md)
 
 ## `evaluate`
+- [accuracy_score](user_guide/evaluate/accuracy_score.md)
+- [bias_variance_decomp](user_guide/evaluate/bias_variance_decomp.md)
 - [bootstrap](user_guide/evaluate/bootstrap.md)
 - [bootstrap_point632_score](user_guide/evaluate/bootstrap_point632_score.md)
 - [BootstrapOutOfBag](user_guide/evaluate/BootstrapOutOfBag.md)
 - [cochrans_q](user_guide/evaluate/cochrans_q.md)
 - [confusion_matrix](user_guide/evaluate/confusion_matrix.md)
+- [combined_ftest_5x2cv](user_guide/evaluate/combined_ftest_5x2cv.md)
+- [feature_importance_permutation](user_guide/evaluate/feature_importance_permutation.md)
+- [ftest](user_guide/evaluate/ftest.md)
 - [lift_score](user_guide/evaluate/lift_score.md)
 - [mcnemar_table](user_guide/evaluate/mcnemar_table.md)
 - [mcnemar_tables](user_guide/evaluate/mcnemar_tables.md)
@@ -37,6 +42,9 @@
 - [paired_ttest_kfold_cv](user_guide/evaluate/paired_ttest_kfold_cv.md)
 - [paired_ttest_resampled](user_guide/evaluate/paired_ttest_resampled.md)
 - [permutation_test](user_guide/evaluate/permutation_test.md)
+- [PredefinedHoldoutSplit](user_guide/evaluate/PredefinedHoldoutSplit.md)
+- [proportion_difference](user_guide/evaluate/proportion_difference.md)
+- [RandomHoldoutSplit](user_guide/evaluate/RandomHoldoutSplit.md)
 - [scoring](user_guide/evaluate/scoring.md)
 
 ## `feature_extraction`
@@ -56,12 +64,17 @@
 ## `frequent_patterns`
 - [apriori](user_guide/frequent_patterns/apriori.md)
 - [association_rules](user_guide/frequent_patterns/association_rules.md)
+- [fpgrowth](user_guide/frequent_patterns/fpgrowth.md)
+- [fpmax](user_guide/frequent_patterns/fpmax.md)
 
 ## `general concepts`
 - [activation-functions](user_guide/general_concepts/activation-functions.md)
 - [gradient-optimization](user_guide/general_concepts/gradient-optimization.md)
 - [linear-gradient-derivative](user_guide/general_concepts/linear-gradient-derivative.md)
 - [regularization-linear](user_guide/general_concepts/regularization-linear.md)
+
+## `image`
+- [extract_face_landmarks](user_guide/image/extract_face_landmarks.md)
 
 ## `math`
 - [num_combinations](user_guide/math/num_combinations.md)
@@ -72,11 +85,14 @@
 - [checkerboard_plot](user_guide/plotting/checkerboard_plot.md)
 - [ecdf](user_guide/plotting/ecdf.md)
 - [enrichment_plot](user_guide/plotting/enrichment_plot.md)
+- [heatmap](user_guide/plotting/heatmap.md)
 - [plot_confusion_matrix](user_guide/plotting/plot_confusion_matrix.md)
+- [plot_pca_correlation_graph](user_guide/plotting/plot_pca_correlation_graph.md)
 - [plot_decision_regions](user_guide/plotting/plot_decision_regions.md)
 - [plot_learning_curves](user_guide/plotting/plot_learning_curves.md)
 - [plot_linear_regression](user_guide/plotting/plot_linear_regression.md)
 - [plot_sequential_feature_selection](user_guide/plotting/plot_sequential_feature_selection.md)
+- [scatterplotmatrix](user_guide/plotting/scatterplotmatrix.md)
 - [stacked_barplot](user_guide/plotting/stacked_barplot.md)
 
 ## `preprocessing`
@@ -85,9 +101,9 @@
 - [MeanCenterer](user_guide/preprocessing/MeanCenterer.md)
 - [minmax_scaling](user_guide/preprocessing/minmax_scaling.md)
 - [one-hot_encoding](user_guide/preprocessing/one-hot_encoding.md)
-- [OnehotTransactions](user_guide/preprocessing/OnehotTransactions.md)
 - [shuffle_arrays_unison](user_guide/preprocessing/shuffle_arrays_unison.md)
 - [standardize](user_guide/preprocessing/standardize.md)
+- [TransactionEncoder](user_guide/preprocessing/TransactionEncoder.md)
 
 ## `regressor`
 - [LinearRegression](user_guide/regressor/LinearRegression.md)

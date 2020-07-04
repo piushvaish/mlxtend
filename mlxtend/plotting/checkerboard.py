@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Implementation of the mulitnomial logistic regression algorithm for
@@ -52,6 +52,11 @@ def checkerboard_plot(ary,
     Returns
     -----------
     fig : matplotlib Figure object.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/plotting/checkerboard_plot/
 
     """
 

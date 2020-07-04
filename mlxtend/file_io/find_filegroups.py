@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for collecting file-group names from local directories.
@@ -47,6 +47,11 @@ def find_filegroups(paths, substring='', extensions=None, validity_check=True,
         Dictionary of files paths. Keys are the file names
         found in the first directory listed
         in `paths` (without file extension).
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/file_io/find_filegroups/
 
     """
     n = len(paths)

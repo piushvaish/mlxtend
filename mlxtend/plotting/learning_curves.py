@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for plotting learning curves of classifiers.
@@ -58,6 +58,11 @@ def plot_learning_curves(X_train, y_train,
     Returns
     ---------
     errors : (training_error, test_error): tuple of lists
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/plotting/plot_learning_curves/
 
     """
     if scoring != 'misclassification error':

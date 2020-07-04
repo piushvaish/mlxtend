@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for loading the open-source Wine dataset.
@@ -42,6 +42,11 @@ def wine_data():
         X is the feature matrix with 178 wine samples as rows
         and 13 feature columns.
         y is a 1-dimensional array of the 3 class labels 0, 1, 2
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/data/wine_data
 
     """
     tmp = np.loadtxt(DATA_PATH, delimiter=',')

@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for plotting decision regions of classifiers.
@@ -48,6 +48,11 @@ def ecdf(x, y_label='ECDF', x_label=None, ax=None, percentile=None,
         Number of samples that have a feature less or equal than
         the feature threshold at a percentile threshold
         or None if `percentile=None`
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/plotting/ecdf/
 
     """
     if ax is None:

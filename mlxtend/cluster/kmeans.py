@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Estimator for Linear Regression
@@ -51,6 +51,11 @@ class Kmeans(_BaseModel, _Cluster, _IterativeModel):
         cluster.
     iterations_ : int
         Number of iterations until convergence.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/classifier/Kmeans/
 
     """
 

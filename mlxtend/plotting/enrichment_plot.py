@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for plotting enrichment plots.
@@ -59,6 +59,11 @@ def enrichment_plot(df, colors='bgrkcy', markers=' ', linestyles='-',
     Returns
     ----------
     ax : matplotlib axis
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/plotting/enrichment_plot/
 
     """
     if isinstance(df, pd.Series):

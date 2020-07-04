@@ -2,11 +2,8 @@ build: false
 
 environment:
   matrix:
-    - PYTHON_VERSION: 3.6
-      MINICONDA: C:/Miniconda36-x64
-    - PYTHON_VERSION: 2.7
-      MINICONDA: C:/Miniconda-x64
-
+    - PYTHON_VERSION: 3.8
+      MINICONDA: C:/Miniconda37-x64
 init:
   - ECHO %PYTHON_VERSION% %MINICONDA%
   - ECHO conda --version
@@ -16,9 +13,22 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
-  - conda create -q -n test-environment python=%PYTHON_VERSION% numpy scipy scikit-learn pandas nose
+  - conda create -q -n test-environment python=%PYTHON_VERSION% numpy scipy scikit-learn pandas joblib pytest
   - activate test-environment
-  - pip install nose-exclude
+  - conda install -c conda-forge dlib
+  - conda install imageio
+  - conda install scikit-image
 
 test_script:
-  - nosetests -s -v --exclude-dir=mlxtend/plotting
+  - set PYTHONPATH=%PYTHONPATH%;%CD%
+  - pytest -sv --ignore=mlxtend/plotting
+
+notifications:
+
+  # Email
+  - provider: Email
+    to:
+      - mail@sebastianraschka.com
+    subject: 'Build {{status}}'
+    message: "{{message}}, {{commitId}}, ..."
+    on_build_status_changed: true

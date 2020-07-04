@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for searching files in local directories.
@@ -35,6 +35,11 @@ def find_files(substring, path, recursive=False,
     ----------
     results : `list`
         List of the matched files.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/file_io/find_files/
 
     """
     def check_file(f, path):

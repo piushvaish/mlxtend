@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Implementation of the ADAptive LInear NEuron classification algorithm.
@@ -51,6 +51,11 @@ class Adaline(_BaseModel, _IterativeModel, _Classifier):
       Bias unit after fitting.
     cost_ : list
       Sum of squared errors after each epoch.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/classifier/Adaline/
 
     """
     def __init__(self, eta=0.01, epochs=50,

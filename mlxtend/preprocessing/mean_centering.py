@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A class to apply column-based mean centering to a dataset.
@@ -18,6 +18,12 @@ class MeanCenterer(object):
     col_means : numpy.ndarray [n_columns]
         NumPy array storing the mean values for centering after fitting
         the MeanCenterer object.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/preprocessing/MeanCenterer/
+
     """
     def __init__(self):
         pass

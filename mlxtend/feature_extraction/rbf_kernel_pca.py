@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Principal Component Analysis for dimensionality reduction.
@@ -34,6 +34,11 @@ class RBFKernelPCA(_BaseModel):
        Eigenvectors in sorted order.
     X_projected_ : array-like, shape=[n_samples, n_components]
        Training samples projected along the component axes.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/feature_extraction/RBFKernelPCA/
 
     """
     def __init__(self, gamma=15.0, n_components=None, copy_X=True):

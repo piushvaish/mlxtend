@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Author: Sebastian Raschka <sebastianraschka.com>
@@ -70,6 +70,11 @@ def paired_ttest_resampled(estimator1, estimator2, X, y,
         than the p-value, we reject the null hypothesis
         and accept that there are significant differences
         in the two compared models.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/evaluate/paired_ttest_resampled/
 
     """
     if (not isinstance(test_size, int) and not isinstance(test_size, float)):
@@ -177,6 +182,11 @@ def paired_ttest_kfold_cv(estimator1, estimator2, X, y,
         and accept that there are significant differences
         in the two compared models.
 
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/evaluate/paired_ttest_kfold_cv/
+
     """
 
     kf = KFold(n_splits=cv, random_state=random_seed, shuffle=shuffle)
@@ -265,6 +275,11 @@ def paired_ttest_5x2cv(estimator1, estimator2, X, y,
         than the p-value, we reject the null hypothesis
         and accept that there are significant differences
         in the two compared models.
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/evaluate/paired_ttest_5x2cv/
 
     """
     rng = np.random.RandomState(random_seed)

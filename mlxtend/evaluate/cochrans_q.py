@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Author: Sebastian Raschka <sebastianraschka.com>
@@ -29,6 +29,11 @@ def cochrans_q(y_target, *y_model_predictions):
 
     q, p : float or None, float
         Returns the Q (chi-squared) value and the p-value
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/evaluate/cochrans_q/
 
     """
 
@@ -66,8 +71,8 @@ def cochrans_q(y_target, *y_model_predictions):
 
     # denominator
     binary_combin = list(itertools.product([0, 1], repeat=num_models))
-    ary = np.hstack(((y_target == mod).reshape(-1, 1) for
-                    mod in y_model_predictions)).astype(int)
+    ary = np.hstack([(y_target == mod).reshape(-1, 1) for
+                    mod in y_model_predictions]).astype(int)
     correctly_classified_objects = 0
     binary_combin_totals = np.zeros(len(binary_combin))
     for i, c in enumerate(binary_combin):

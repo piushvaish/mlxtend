@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Function for plotting linear regression fits via scikit-learn and matplotlib.
@@ -48,6 +48,11 @@ def plot_linear_regression(X, y, model=LinearRegression(),
     ----------
     regression_fit : tuple
         intercept, slope, corr_coeff (float, float, float)
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/plotting/plot_linear_regression/
 
     """
     if isinstance(X, list):

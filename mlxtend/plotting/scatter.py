@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # Matplotlib wrapper for creating scatterplots from data w. mult. categories.
@@ -44,6 +44,11 @@ def category_scatter(x, y, label_col, data,
     Returns
     ---------
     fig : matplotlig.pyplot figure object
+
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/plotting/category_scatter/
 
     """
     fig = plt.figure()

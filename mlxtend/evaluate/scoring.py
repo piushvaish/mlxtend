@@ -1,4 +1,4 @@
-# Sebastian Raschka 2014-2018
+# Sebastian Raschka 2014-2020
 # mlxtend Machine Learning Library Extensions
 #
 # A function for scoring predictions.
@@ -8,14 +8,11 @@
 
 import numpy as np
 from mlxtend.evaluate.confusion_matrix import confusion_matrix
-
-
-def _accuracy(true, pred):
-    return (true == pred).sum() / float(true.shape[0])
+from mlxtend.evaluate.accuracy import accuracy_score
 
 
 def _error(true, pred):
-    return 1.0 - _accuracy(true, pred)
+    return 1.0 - accuracy_score(true, pred, method='standard')
 
 
 def _macro(true, pred, func, unique_labels):
@@ -39,8 +36,8 @@ def scoring(y_target, y_predicted, metric='error',
     metric : str (default: 'error')
         Performance metric:
         'accuracy': (TP + TN)/(FP + FN + TP + TN) = 1-ERR\n
-        'per-class accuracy': Average per-class accuracy\n
-        'per-class error':  Average per-class error\n
+        'average per-class accuracy': Average per-class accuracy\n
+        'average per-class error':  Average per-class error\n
         'error': (TP + TN)/(FP+ FN + TP + TN) = 1-ACC\n
         'false_positive_rate': FP/N = FP/(FP + TN)\n
         'true_positive_rate': TP/P = TP/(FN + TP)\n
@@ -66,11 +63,16 @@ def scoring(y_target, y_predicted, metric='error',
     ------------
     score : float
 
+    Examples
+    -----------
+    For usage examples, please see
+    http://rasbt.github.io/mlxtend/user_guide/evaluate/scoring/
+
     """
     implemented = {'error',
                    'accuracy',
-                   'per-class accuracy',
-                   'per-class error',
+                   'average per-class accuracy',
+                   'average per-class error',
                    'false_positive_rate',
                    'true_positive_rate',
                    'true_negative_rate',
@@ -102,15 +104,12 @@ def scoring(y_target, y_predicted, metric='error',
 
     # multi-class metrics
     if metric == 'accuracy':
-        res = _accuracy(targ_tmp, pred_tmp)
+        res = accuracy_score(targ_tmp, pred_tmp, method='standard')
     elif metric == 'error':
         res = _error(targ_tmp, pred_tmp)
-    elif metric == 'per-class accuracy':
-        res = _macro(targ_tmp,
-                     pred_tmp,
-                     func=_accuracy,
-                     unique_labels=unique_labels)
-    elif metric == 'per-class error':
+    elif metric == 'average per-class accuracy':
+        res = accuracy_score(targ_tmp, pred_tmp, method='average')
+    elif metric == 'average per-class error':
         res = _macro(targ_tmp,
                      pred_tmp,
                      func=_error,
